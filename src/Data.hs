@@ -8,10 +8,11 @@ type Edge = (Player, Player)
 type Result = (Integer, Integer)
 type Game = (Edge, Result)
 type GameSum = (Edge, (Integer,Integer,Integer))
+type GameName = String
 
 data GameState = GameState
 	{ gsPlayer :: [Player]
-	, gsGames :: [Game]
+	, gsGames :: [(GameName,[Game])]
 	}
 	deriving (Show, Read)
 
@@ -20,6 +21,7 @@ type Coord = Complex Double
 
 data UIState = UIState
 	{ uisPositions :: [(Player, Coord)]
+	, uisCurrentGame :: GameName
 	, uisBBoxes :: [(Player, (Double, Double, Double, Double))] 
 	, uisMousePos :: (Double, Double)
 	, uisHover :: Maybe Player

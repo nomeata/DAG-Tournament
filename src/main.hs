@@ -14,6 +14,8 @@ import Control.Monad
 import Control.Applicative
 import Text.Printf
 import Data.List
+import System.Environment
+import Data.Maybe
 
 fontSize = 1/50
 
@@ -38,13 +40,15 @@ updateUIState elapsedTime gameState spanningTree =
 	addNewPlayers gameState .
 	setHover
 
-playedWith gameState p1 p2 = let pairings = map fst (gsGames gameState)
-                             in  (p1,p2) `elem` pairings || (p2,p1) `elem` pairings
+playedWith curGame gameState p1 p2 = let Just games = lookup curGame (gsGames gameState)
+                                         pairings =   map fst games
+                                     in  (p1,p2) `elem` pairings || (p2,p1) `elem` pairings
 
 tick :: IORef GameState -> IORef UIState -> DrawingArea -> IO ()
 tick gameStateRef uiStateRef canvas = do
 	-- Simulations logic here
 	gameState <- readIORef gameStateRef
+	uiState <- readIORef uiStateRef
 
 	now <- getCurrentTime
 	backThen <- uisLastFrameTime <$> readIORef uiStateRef
@@ -52,7 +56,7 @@ tick gameStateRef uiStateRef canvas = do
 
 	let elapsedTime = realToFrac (now `diffUTCTime` backThen)
 
-	let spanningTree = transHull $ sumGames (gsGames gameState)
+	let spanningTree = transHull $ sumGames (getGames (uisCurrentGame uiState) gameState)
 
 	modifyIORef uiStateRef (updateUIState elapsedTime gameState spanningTree)
 
@@ -88,7 +92,7 @@ tick gameStateRef uiStateRef canvas = do
 	          then		setSourceRGB 0 0 1 >> fillPreserve >> setSourceRGB 0 0 0 
 		  else if Just player == uisHover uiState
 		  then		setSourceRGB 1 0 0 >> fillPreserve >> setSourceRGB 0 0 0 
-		  else when (maybe False (playedWith gameState player) important) $ 
+		  else when (maybe False (playedWith (uisCurrentGame uiState) gameState player) important) $ 
 		      		setSourceRGB 1 1 0 >> fillPreserve >> setSourceRGB 0 0 0 
 		stroke
 
@@ -121,15 +125,17 @@ tick gameStateRef uiStateRef canvas = do
 		stroke
 	
 	case uisHover uiState of
-	  Just player -> showStats gameState player
+	  Just player -> showStats uiState gameState player
 	  Nothing -> return ()
+
+	showGames uiState gameState
 	
 	liftIO $ modifyIORef uiStateRef (\uis -> uis { uisBBoxes = bb })
 
-showStats gameState player = do
+showStats uiState gameState player = do
 	let texts = map (\((p1,p2),(s1,s2)) -> printf "%s vs. %s: %d:%d" p1 p2 s1 s2) $
                     filter (\((p1,p2),_) -> p1 == player || p2 == player) $
-		    gsGames gameState
+		    getGames (uisCurrentGame uiState) gameState
 
         unless (null texts) $ preserve $ do
                 scale 1 (-1)
@@ -141,6 +147,14 @@ showStats gameState player = do
                         showText text
                         translate 0 (-fontSize)
 
+showGames uiState gameState = preserve $ do
+	newPath
+	let text = uisCurrentGame uiState
+	scale 1 (-1)
+	TextExtents xb yb w h _ _ <- textExtents text
+	translate (1-w-xb- 1/2*fontSize) (-1/2*fontSize)
+	showText text
+	
 
 gameDialog :: Window -> Player -> Player -> IO (Maybe Game)
 gameDialog window player1 player2 = do
@@ -232,11 +246,12 @@ editGameState window gameStateRef = do
 	widgetDestroy dlg
 
 main = do
+	games <- (\a -> if null a then ["XXX"] else a) <$> getArgs
 	now <- getCurrentTime
 	-- gameStateRef <- newIORef $ GameState ["Player A", "Player B", "Player C"] [(("Player A","Player B"), (1,0)),(("Player B","Player C"), (1,0))]
 	-- uiStateRef <- newIORef $ UIState [] [] (0,0) Nothing Nothing now
-	gameStateRef <- newIORef $ GameState [] []
-	uiStateRef <- newIORef $ UIState [] [] (0,0) Nothing Nothing now
+	gameStateRef <- newIORef $ GameState [] (map (\gn -> (gn,[])) games)
+	uiStateRef <- newIORef $ UIState [] (head games) [] (0,0) Nothing Nothing now
 
         initGUI
         window <- windowNew
@@ -265,7 +280,9 @@ main = do
 		  	ret <- gameDialog window p1 p2
 			case ret of
 			 Just game -> modifyIORef gameStateRef $ \gs ->
-					gs { gsGames = game : gsGames gs}
+					gs { gsGames = map (\(gn,gs) ->
+						(gn, if gn == uisCurrentGame uiState then game : gs else gs)
+					) (gsGames gs) }
 			 Nothing -> return ()
 		  _ -> return ()
 		modifyIORef uiStateRef $ \uis -> uis { uisDragStart = Nothing }
@@ -276,6 +293,10 @@ main = do
 			editGameState window gameStateRef
 		when (eventModifier e == [Control] && eventKeyChar e == Just 'r') $
 			modifyIORef uiStateRef (\uis -> uis { uisPositions = [] })
+		when (eventKeyName e == "Tab") $
+			modifyIORef uiStateRef (\uis -> uis {
+				uisCurrentGame = followingElement (uisCurrentGame uis) games
+				})
 		return False
 
 
@@ -323,3 +344,9 @@ maybeRead :: Read a => String -> Maybe a
 maybeRead s = case reads s of
   [(x, "")] -> Just x
   _         -> Nothing
+
+getGames :: GameName -> GameState -> [Game]
+getGames gameName = fromJust . lookup gameName . gsGames
+
+followingElement e l = go (cycle l)
+  where go (x:xs) = if x == e then head xs else go xs
