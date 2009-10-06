@@ -7,7 +7,7 @@ type Player = String
 type Edge = (Player, Player)
 type Result = (Integer, Integer)
 type Game = (Edge, Result)
-type GameSum = (Edge, [Integer])
+type GameSum = (Edge, (Integer,Integer,Integer))
 
 data GameState = GameState
 	{ gsPlayer :: [Player]

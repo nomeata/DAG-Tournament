@@ -3,7 +3,7 @@ module Graph where
 import Data
 
 import qualified Data.Map as M
-import Control.Arrow (second)
+import Control.Arrow (second, (***))
 import Data.Maybe
 import Data.Ord
 import Data.List
@@ -31,15 +31,20 @@ reachable g p1 p2  = go p1
 
 sumGames :: [Game] -> [GameSum]
 sumGames = mapMaybe flipRight . M.toList . M.map sumUp .
-           M.fromListWith (++) .  map (second (:[]) .  sortName)
-  where sumUp :: [Result] -> [Integer]
-        sumUp ress = [ sum (map gameCount ress)
-	             , sum (map (uncurry (-)) ress)
-		     ]
-	flipRight ((p1,p2),l) =  case dropWhile (==0) l of
-		[]           -> Nothing
-		n:_ | n > 0  -> Just ((p1,p2),l)
-		    | n < 0  -> Just ((p2,p1),map negate l)
+           M.fromListWith (\(a,b) (a',b') -> (a ++ a', b `max` b')) .
+	   zipWith (\n (a,b) -> (a,([b],n))) [1,2..] .
+	   map sortName
+  where sumUp :: ([Result],Integer) -> (Integer, Integer, Integer)
+        sumUp (ress,o) = ( sum (map gameCount ress)
+	                 , sum (map (uncurry (-)) ress)
+			 , o
+		         )
+	flipRight ((p1,p2),c@(c1,c2,c3)) =
+		if c1 == 0 && c2 == 0
+		then Nothing
+		else if c >= (0,0,0)
+		     then Just ((p1,p2),c)
+		     else Just ((p2,p1),(-c1,-c2,c3))
 
 	sortName x@((p1,p2),(c1,c2)) | p1 <= p2  = x
 	                             | otherwise = ((p2,p1),(c2,c1))
