@@ -18,6 +18,8 @@ import Text.Printf
 import Data.List
 import System.Environment
 import Data.Maybe
+import System.Directory
+import System.FilePath
 
 fontSize = 1/50
 
@@ -239,6 +241,7 @@ addNewPlayer window gameStateRef = do
 	when (responseId == ResponseOk) $ do
 		name  <- get e1 entryText
 		modifyIORef gameStateRef (\gs -> gs { gsPlayer = nub $ name : gsPlayer gs })
+		saveGameState gameStateRef
 
 	widgetDestroy dlg
 
@@ -263,10 +266,15 @@ editGameState window gameStateRef = do
 	when (responseId == ResponseOk) $ do
 		text <- get tb textBufferText
 	  	case maybeRead text of
-		    Just gs -> writeIORef gameStateRef gs
+		    Just gs -> writeIORef gameStateRef gs >> saveGameState gameStateRef
 		    Nothing -> return ()
 
 	widgetDestroy dlg
+
+saveGameState :: IORef GameState -> IO ()
+saveGameState gameStateRef = do
+	home <- getHomeDirectory
+	readIORef gameStateRef >>= writeFile (home </> ".DAG-Tournamet.backup") . show
 
 main = do
 	games <- (\a -> if null a then ["XXX"] else a) <$> getArgs
@@ -303,10 +311,12 @@ main = do
 		  (Just p1, Just p2) | p1 /= p2 -> do
 		  	ret <- gameDialog window p1 p2
 			case ret of
-			 Just game -> modifyIORef gameStateRef $ \gs ->
+			 Just game -> do
+			 	modifyIORef gameStateRef $ \gs ->
 					gs { gsGames = map (\(gn,gs) ->
 						(gn, if gn == uisCurrentGame uiState then game : gs else gs)
 					) (gsGames gs) }
+			        saveGameState gameStateRef
 			 Nothing -> return ()
 		  _ -> return ()
 		modifyIORef uiStateRef $ \uis -> uis { uisDragStart = Nothing }
