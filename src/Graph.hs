@@ -52,3 +52,6 @@ sumGames = mapMaybe flipRight . M.toList . M.map sumUp .
 gameCount (a,b) | a > b     = 1
                 | a < b     = -1
                 | otherwise = 0
+
+countGames :: [Game] -> [(Player, Integer)]
+countGames = M.toList . M.fromListWith (+) . concat . map (\((p1,p2),_) -> [(p1,1),(p2,1)])
