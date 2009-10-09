@@ -1,3 +1,5 @@
+{-# LANGUAGE RecordWildCards #-}
+
 module Main where
 
 import Data
@@ -60,7 +62,7 @@ tick gameStateRef uiStateRef canvas = do
 
 	modifyIORef uiStateRef (updateUIState elapsedTime gameState spanningTree)
 
-	uiState <- readIORef uiStateRef
+	uiState@(UIState {..}) <- readIORef uiStateRef
 
 	-- Graphics here
 	render canvas $ do
@@ -73,15 +75,15 @@ tick gameStateRef uiStateRef canvas = do
 	setFontSize fontSize
 	let padding = (2/1000)
 
-	let important = msum [uisDragStart uiState, uisHover uiState]
+	let important = msum [uisDragStart, uisHover]
 
-	let gameCounts = countGames (getGames (uisCurrentGame uiState) gameState)
+	let gameCounts = countGames (getGames uisCurrentGame gameState)
 
 	-- Calculate bounding boxes for player while drawing them
-	bb <- forM (uisPositions uiState) $ \(player, x :+ y) -> preserve $ do
+	bb <- forM uisPositions $ \(player, x :+ y) -> preserve $ do
 		let text1 = player
 		let text2 = printf " (%d)" (fromMaybe 0 (lookup player gameCounts))
-		let text = if uisShowGameCount uiState
+		let text = if uisShowGameCount 
 		           then text1 ++ text2
 			   else text1
                 TextExtents xb1 yb1 w1 h1 _ _ <- textExtents text1
@@ -96,17 +98,17 @@ tick gameStateRef uiStateRef canvas = do
 			    )
 		roundedRect ux uy uw uh
 
-		if        Just player == uisDragStart uiState
+		if        Just player == uisDragStart
 	          then		setSourceRGB 0 0 1 >> fillPreserve >> setSourceRGB 0 0 0 
-		  else if Just player == uisHover uiState
+		  else if Just player == uisHover
 		  then		setSourceRGB 1 0 0 >> fillPreserve >> setSourceRGB 0 0 0 
-		  else when (maybe False (playedWith (uisCurrentGame uiState) gameState player) important) $ 
+		  else when (maybe False (playedWith uisCurrentGame gameState player) important) $ 
 		      		setSourceRGB 1 1 0 >> fillPreserve >> setSourceRGB 0 0 0 
 		stroke
 
                 moveTo (-w1/2) (h1/2)
                 showText text1
-		when (uisShowGameCount uiState) $ do
+		when uisShowGameCount $ do
 			setSourceRGB 0.5 0.5 0.5
 			showText text2
 
@@ -117,8 +119,8 @@ tick gameStateRef uiStateRef canvas = do
 	forM_ spanningTree $ \(p1,p2) -> preserve $ do
 		setLineWidth (4/1000)
 		setLineCap LineCapRound
-		let Just v1@(x1 :+ y1) = lookup p1 (uisPositions uiState)
-		let Just v2@(x2 :+ y2) = lookup p2 (uisPositions uiState)
+		let Just v1@(x1 :+ y1) = lookup p1 uisPositions
+		let Just v2@(x2 :+ y2) = lookup p2 uisPositions
 		let d = signum (v2 - v1)
 
 		let rv1@(rx1 :+ ry1) = v1 + 2/100 * d
@@ -135,7 +137,7 @@ tick gameStateRef uiStateRef canvas = do
 		lineTo trx try
 		stroke
 	
-	case uisHover uiState of
+	case uisHover of
 	  Just player -> showStats uiState gameState player
 	  Nothing -> return ()
 
