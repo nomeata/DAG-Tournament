@@ -128,7 +128,11 @@ tick gameStateRef uiStateRef canvas = do
 	  Just player -> showStats uiState gameState player
 	  Nothing -> return ()
 
-	showGames uiState gameState
+	-- Only show game name if there is more than one
+	case gsGames gameState of
+	  [] ->  return ()
+	  [_] -> return ()
+	  _ ->   showGames uiState gameState
 	
 	liftIO $ modifyIORef uiStateRef (\uis -> uis { uisBBoxes = bb })
 
