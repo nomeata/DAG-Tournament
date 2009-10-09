@@ -26,6 +26,7 @@ data UIState = UIState
 	, uisMousePos :: (Double, Double)
 	, uisHover :: Maybe Player
 	, uisDragStart :: Maybe Player
+	, uisShowGameCount :: Bool
 	, uisLastFrameTime :: UTCTime
 	} 
 	deriving (Show)

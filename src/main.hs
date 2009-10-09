@@ -81,15 +81,18 @@ tick gameStateRef uiStateRef canvas = do
 	bb <- forM (uisPositions uiState) $ \(player, x :+ y) -> preserve $ do
 		let text1 = player
 		let text2 = printf " (%d)" (fromMaybe 0 (lookup player gameCounts))
-		let text = text1 ++ text2
-                TextExtents xb yb w h _ _ <- textExtents text
+		let text = if uisShowGameCount uiState
+		           then text1 ++ text2
+			   else text1
+                TextExtents xb1 yb1 w1 h1 _ _ <- textExtents text1
+                TextExtents xb  yb  w  h _ _ <- textExtents text
 		scale 1 (-1)
                 translate x (-y)
 		let (ux, uy, uw, uh) = 
-			    ( -w/2 + xb - padding
-			    ,  h/2 + yb - padding
-			    ,  w   +    2*padding
-			    ,  h   +    2*padding
+			    ( -w1/2 + xb1 - padding
+			    ,  h1/2 + yb1 - padding
+			    ,  w   +      2*padding
+			    ,  h   +      2*padding
 			    )
 		roundedRect ux uy uw uh
 
@@ -101,10 +104,11 @@ tick gameStateRef uiStateRef canvas = do
 		      		setSourceRGB 1 1 0 >> fillPreserve >> setSourceRGB 0 0 0 
 		stroke
 
-                moveTo (-w/2) (h/2)
+                moveTo (-w1/2) (h1/2)
                 showText text1
-		setSourceRGB 0.5 0.5 0.5
-                showText text2
+		when (uisShowGameCount uiState) $ do
+			setSourceRGB 0.5 0.5 0.5
+			showText text2
 
 		(dx,dy) <- userToDevice ux uy
 		(dw,dh) <- userToDeviceDistance uw uh
@@ -259,10 +263,8 @@ editGameState window gameStateRef = do
 main = do
 	games <- (\a -> if null a then ["XXX"] else a) <$> getArgs
 	now <- getCurrentTime
-	-- gameStateRef <- newIORef $ GameState ["Player A", "Player B", "Player C"] [(("Player A","Player B"), (1,0)),(("Player B","Player C"), (1,0))]
-	-- uiStateRef <- newIORef $ UIState [] [] (0,0) Nothing Nothing now
 	gameStateRef <- newIORef $ GameState [] (map (\gn -> (gn,[])) games)
-	uiStateRef <- newIORef $ UIState [] (head games) [] (0,0) Nothing Nothing now
+	uiStateRef <- newIORef $ UIState [] (head games) [] (0,0) Nothing Nothing False now
 
         initGUI
         window <- windowNew
@@ -299,6 +301,8 @@ main = do
 		modifyIORef uiStateRef $ \uis -> uis { uisDragStart = Nothing }
 		return True
 
+		return False
+
         onKeyPress window $ \e -> do
 		when (eventModifier e == [Control] && eventKeyChar e == Just 'e') $
 			editGameState window gameStateRef
@@ -308,8 +312,18 @@ main = do
 			modifyIORef uiStateRef (\uis -> uis {
 				uisCurrentGame = followingElement (uisCurrentGame uis) games
 				})
+		when (eventKeyName e `elem` ["Shift_L","Shift_R"]) $
+			modifyIORef uiStateRef (\uis -> uis {
+				uisShowGameCount = True })
+                widgetQueueDraw canvas
 		return False
 
+        onKeyRelease window $ \e -> do
+		when (eventKeyName e `elem` ["Shift_L","Shift_R"]) $
+			modifyIORef uiStateRef (\uis -> uis {
+				uisShowGameCount = False })
+                widgetQueueDraw canvas
+		return False
 
 	flip timeoutAdd 30 $ do 
                 widgetQueueDraw canvas
