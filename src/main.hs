@@ -75,9 +75,14 @@ tick gameStateRef uiStateRef canvas = do
 
 	let important = msum [uisDragStart uiState, uisHover uiState]
 
+	let gameCounts = countGames (getGames (uisCurrentGame uiState) gameState)
+
 	-- Calculate bounding boxes for player while drawing them
 	bb <- forM (uisPositions uiState) $ \(player, x :+ y) -> preserve $ do
-                TextExtents xb yb w h _ _ <- textExtents player
+		let text1 = player
+		let text2 = printf " (%d)" (fromMaybe 0 (lookup player gameCounts))
+		let text = text1 ++ text2
+                TextExtents xb yb w h _ _ <- textExtents text
 		scale 1 (-1)
                 translate x (-y)
 		let (ux, uy, uw, uh) = 
@@ -97,7 +102,9 @@ tick gameStateRef uiStateRef canvas = do
 		stroke
 
                 moveTo (-w/2) (h/2)
-                showText player
+                showText text1
+		setSourceRGB 0.5 0.5 0.5
+                showText text2
 
 		(dx,dy) <- userToDevice ux uy
 		(dw,dh) <- userToDeviceDistance uw uh
