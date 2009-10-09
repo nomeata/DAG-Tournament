@@ -62,7 +62,13 @@ tick gameStateRef uiStateRef canvas = do
 
 	modifyIORef uiStateRef (updateUIState elapsedTime gameState spanningTree)
 
+
+redraw :: IORef GameState -> IORef UIState -> DrawingArea -> IO ()
+redraw gameStateRef uiStateRef canvas = do
+	gameState <- readIORef gameStateRef
 	uiState@(UIState {..}) <- readIORef uiStateRef
+
+	let spanningTree = transHull $ sumGames (getGames uisCurrentGame gameState)
 
 	-- Graphics here
 	render canvas $ do
@@ -273,7 +279,10 @@ main = do
         canvas <- drawingAreaNew
         onDestroy window mainQuit
 
-	onExpose canvas $ const $ tick gameStateRef uiStateRef canvas >> return True
+	onExpose canvas $ const $ do
+		tick gameStateRef uiStateRef canvas
+		redraw gameStateRef uiStateRef canvas 
+		return True
 
 	onMotionNotify canvas False $ \e -> do 
 		modifyIORef uiStateRef (\uis -> uis { uisMousePos = (eventX e, eventY e) })
