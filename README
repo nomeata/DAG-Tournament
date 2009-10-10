@@ -1,0 +1,101 @@
+DAG-Tournament
+==============
+
+Introduction
+------------
+
+DAG-Tournament, where DAG stands for directed acyclic graph, is a graphical
+program to manage an informal tournament of games such as foosball. It is
+designed for open-for-all tournaments without schedule, for example to
+record all games as they happen in the free time program of a serious
+event, such as a conference.
+
+Games can be entered as they happen. The program does not generate a
+complete ranking, but only visualizes what it knows about who is better
+than who based on direct comparison, or a path of direct comparisons.
+Cycles are broken at the edge of least significance. The visualisation is
+baesd on springs and forces and updated in real time, already producing
+entertaining effects.
+
+DAG-Tournaments supports more than one tournament at the same time, e.g.
+foosball and pool billard, and can switch between the two rankings with one
+keypress, again showing an entaining shuffling of nodes until a stable
+state is reached again.
+
+Using
+-----
+
+DAG-Tournament has no configuration file and takes no command line optins.
+Only if you want to handle more than one game at a time, you need to pass
+the names of the games as command line parameters.
+$ DAG-Tournament
+or
+$ DAG-Tournament Foosball Billard
+
+At first, the screen will be blank, because no players or games have been
+added. You can now interact with the game in these ways:
+
+Double click
+	Add a new player. You will be asked for the name of the player.
+
+Drag’n’drop one player onto another
+	Add a new game result. You will be asked for the final score. If
+	your game does not have scores, just enter 1:0. 
+
+Tab
+	Switch between games, if you have more than one.
+
+Hold shift
+	Show the number of games per player. Useful to decide who ought to
+	play next.
+
+These are sufficient to use the program. Additionally, there is
+functionality meant to be used by the tournament organizer:
+
+Ctrl-R
+	Re-set the position of the players. If the nodes are in a
+	somehow stuck and you expect that they are not yet in their optimal
+	position, this puts them all into a straigt line, possibly allowing
+	them to find a better possition on the screen. 
+
+Ctrl-E
+	Edit the game state. This opens a text edit window with the list of
+	players and games as a raw Haskell value. Here you can edit
+	mistakes. If the result does not parse, it will be discarded, so
+	edit with care!
+
+	After each change to the game state (adding a new player, adding a
+	game result, or using Ctrl-E), it is written to
+	~/.DAG-Tournamet.backup. If you need to resume the program, e.g.
+	after an accidential close or a crash, you can paste the contents
+	of that file to the edit window provided by Ctrl-E
+
+
+Explanation of the screen contents
+----------------------------------
+
+Player names are sometimes coloured. These colours mean:
+
+Red
+	Currently hovered by the mouse. All games with this players are
+	shown on the left.
+Blue
+	Start of a drag action. Let go of the mouse above another player to
+	enter a game.
+Yellow
+	A player that has already played at least against once against the
+	player marked in red. Useful to find out who he has not yet played
+	against.
+
+The back arrows, usually pointing down, indicate that at the current
+standings, the upper player is better than the lower, either by direct
+comparision or a series of comparisions with intermediate players. Only a
+minimal amount of arrows are shown. So if there is an arrow from A to B and
+from B to C, there will not be an arrow from A to C, independently of
+whether A and C have played each other.
+
+Credits
+-------
+
+DAG-Tournamet is © 2009 Joachim Breitner and published under the terms of
+the GNU General Public License, Version 2 or later.
