@@ -43,7 +43,7 @@ executable DAG-Tournament
         Data
         Graph
         Physics
-	HDAPS
+        HDAPS
 
 source-repository head
     type:     darcs
