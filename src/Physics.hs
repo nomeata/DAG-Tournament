@@ -52,10 +52,9 @@ bound (x :+ y) = boundBottom . boundLeft . boundRight
        boundLeft   = if x <    edgePadding then clampPhase 0      else id
        boundRight  = if x > 1- edgePadding then clampPhase pi     else id
 
-applyForces elapsedTime gameState spanningTree uis = uis { uisPositions = map go (uisPositions uis) }
+applyForces elapsedTime down gameState spanningTree uis = uis { uisPositions = map go (uisPositions uis) }
   where go p@(player, coord) = let totalForce = sum $
-  					[ gravity
-					] ++
+  					down :
 					map (repell p) (uisPositions uis) ++
 					map (attract p (uisPositions uis)) spanningTree 
                            in  (player,

@@ -4,6 +4,7 @@ module Main where
 
 import Data
 import Graph
+import HDAPS
 import Physics
 
 import Graphics.UI.Gtk
@@ -38,8 +39,8 @@ setHover uiState = uiState { uisHover = msum $ map check (uisBBoxes uiState) }
 		   y <= my && my <= y + h
 		then Just player else Nothing
 
-updateUIState elapsedTime gameState spanningTree =
-	applyForces elapsedTime gameState spanningTree .
+updateUIState elapsedTime down gameState spanningTree =
+	applyForces elapsedTime down gameState spanningTree .
 	removePlayers gameState .
 	addNewPlayers gameState .
 	setHover
@@ -62,7 +63,8 @@ tick gameStateRef uiStateRef canvas = do
 
 	let spanningTree = transHull $ sumGames (getGames (uisCurrentGame uiState) gameState)
 
-	modifyIORef uiStateRef (updateUIState elapsedTime gameState spanningTree)
+	down <- readTilt
+	modifyIORef uiStateRef (updateUIState elapsedTime down gameState spanningTree)
 
 
 redraw :: IORef GameState -> IORef UIState -> DrawingArea -> IO ()
