@@ -7,7 +7,7 @@ import Graph
 import HDAPS
 import Physics
 
-import Graphics.UI.Gtk
+import Graphics.UI.Gtk hiding (eventKeyName, eventModifier, eventClick, eventButton)
 import Graphics.Rendering.Cairo 
 import Graphics.UI.Gtk.Gdk.Events
 import Data.Time
